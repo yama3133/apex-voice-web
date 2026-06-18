@@ -1,0 +1,5 @@
+boto3>=1.40.0
+botocore>=1.40.0
+requests>=2.32.0
+beautifulsoup4>=4.12.0
+upstash-redis>=1.5.0

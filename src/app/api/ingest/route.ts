@@ -13,7 +13,7 @@
  * 受信後は KV に保存し(status: "received")、必要なら別途 /api/process が
  * Strands Agent + AgentCore Browser で処理する。
  */
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { requireToken, newEntryId } from "@/lib/auth";
 import { saveEntry } from "@/lib/kv";
 import type { Entry } from "@/lib/types";
@@ -46,5 +46,25 @@ export async function POST(req: NextRequest) {
   };
 
   await saveEntry(entry);
+
+  // レスポンス送信後に Python serverless /api/process を呼んで非同期処理
+  // (Web系の発話なら検索・要約、それ以外はskip)
+  after(async () => {
+    try {
+      const origin = req.nextUrl.origin;
+      const token = process.env.APEX_VOICE_TOKEN || "";
+      await fetch(`${origin}/api/process`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ id: entry.id }),
+      });
+    } catch (e) {
+      console.error("trigger process failed:", e);
+    }
+  });
+
   return NextResponse.json({ id: entry.id, entry });
 }
