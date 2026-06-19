@@ -28,6 +28,32 @@ from bs4 import BeautifulSoup
 from upstash_redis import Redis
 
 # ============================================================
+# Vercel OIDC → AWS STS AssumeRoleWithWebIdentity ブリッジ
+# ============================================================
+# Vercel が VERCEL_OIDC_TOKEN を渡してくれるが、boto3 は
+# AWS_WEB_IDENTITY_TOKEN_FILE (ファイルパス) を要求する。
+# そのため起動時にtokenを一時ファイルへ書き出し、環境変数を仕込む。
+def _bootstrap_vercel_oidc():
+    token = os.environ.get("VERCEL_OIDC_TOKEN")
+    role_arn = os.environ.get("AWS_ROLE_ARN")
+    if not token or not role_arn:
+        return
+    if os.environ.get("AWS_WEB_IDENTITY_TOKEN_FILE"):
+        return  # 既に設定済み
+    try:
+        p = "/tmp/vercel_oidc_token"
+        with open(p, "w") as f:
+            f.write(token)
+        os.environ["AWS_WEB_IDENTITY_TOKEN_FILE"] = p
+        # boto3 がセッション名を要求するので念のため
+        os.environ.setdefault("AWS_ROLE_SESSION_NAME", "apex-voice-web")
+    except Exception as e:
+        print(f"[oidc bootstrap] failed: {e}")
+
+
+_bootstrap_vercel_oidc()
+
+# ============================================================
 # 設定
 # ============================================================
 BEDROCK_MODEL_ID = os.environ.get(
