@@ -36,17 +36,17 @@ from upstash_redis import Redis
 def _bootstrap_vercel_oidc():
     token = os.environ.get("VERCEL_OIDC_TOKEN")
     role_arn = os.environ.get("AWS_ROLE_ARN")
+    print(f"[oidc] token_present={bool(token)} role_arn_present={bool(role_arn)}")
     if not token or not role_arn:
+        print("[oidc] skip bootstrap (missing token or role_arn)")
         return
-    if os.environ.get("AWS_WEB_IDENTITY_TOKEN_FILE"):
-        return  # 既に設定済み
     try:
         p = "/tmp/vercel_oidc_token"
         with open(p, "w") as f:
             f.write(token)
         os.environ["AWS_WEB_IDENTITY_TOKEN_FILE"] = p
-        # boto3 がセッション名を要求するので念のため
         os.environ.setdefault("AWS_ROLE_SESSION_NAME", "apex-voice-web")
+        print(f"[oidc] bootstrap OK, role={role_arn}")
     except Exception as e:
         print(f"[oidc bootstrap] failed: {e}")
 
