@@ -153,13 +153,16 @@ def classify_and_extract(text: str) -> dict:
     返り値: {"kind": "search"|"fetch"|"skip", "query": ..., "url": ..., "question": ...}"""
     sys_prompt = (
         "あなたは音声入力アシスタントの分類器です。ユーザー発話を以下のいずれかに分類:\n"
-        " - search: 「〇〇調べて」「〇〇のニュース」「〇〇は?」等のWeb検索系\n"
-        " - fetch: 特定のURLを取得・要約する依頼 (発話にURLが含まれる)\n"
+        " - fetch: 公式サイト等URLが特定できる依頼。"
+        "         有名サイト(Python公式=python.org, AWS=aws.amazon.com, "
+        "         Wikipedia, GitHub等)は url を明示する。\n"
+        " - search: URLが特定できない一般検索。クエリだけ返す。\n"
         " - skip: macOS固有のアクション(リマインダー・カレンダー・音量等)、または\n"
         "         単なる文章入力(メモ・チャット文)。Web処理対象外。\n\n"
-        "出力は厳密にJSONのみ。例:\n"
-        '{"kind":"search","query":"AWS最新ニュース","question":null}\n'
-        '{"kind":"fetch","url":"https://example.com","question":"価格はいくら?"}\n'
+        "出力は厳密にJSONのみ。url が分かるなら必ずurl優先(fetch)で。例:\n"
+        '{"kind":"fetch","url":"https://www.python.org/downloads/","question":"最新バージョンは?"}\n'
+        '{"kind":"fetch","url":"https://ja.wikipedia.org/wiki/富士山","question":"標高は?"}\n'
+        '{"kind":"search","query":"今日の東京の天気","question":null}\n'
         '{"kind":"skip"}\n'
     )
     try:
